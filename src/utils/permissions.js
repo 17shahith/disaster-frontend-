@@ -62,7 +62,8 @@ export const PERMISSIONS = {
     status: ALL.filter((r) => r !== OPERATOR), // team leads: transit/delivery of their own dispatches
     delete: [ADMIN, RELIEF_COORDINATOR], // only while Prepared
   },
-  reports: { view: ALL },
+  // Saved situation reports live in MongoDB: operators/coordinators save them, only admins delete.
+  reports: { view: ALL, snapshot: [ADMIN, OPERATOR, RELIEF_COORDINATOR], deleteSnapshot: [ADMIN] },
   // Accounts are deactivated (Account status = Inactive), never deleted, to keep the audit trail intact.
   users: { view: [ADMIN], create: [ADMIN], edit: [ADMIN], delete: [] },
 };

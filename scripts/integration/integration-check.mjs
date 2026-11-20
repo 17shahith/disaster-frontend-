@@ -204,6 +204,22 @@ const off = await userService.update(nu.id, { ...nu, status: 'Inactive' });
 check('admin deactivates via account status', off.status === 'Inactive');
 await expectError('deactivated user cannot log in', () => authService.login(`e2ecoord${stamp}@test.local`, 'Secure123'), 403);
 
+// 9b. Saved situation reports (MongoDB) ---------------------------------------
+console.log('\n== Saved situation reports (MongoDB)');
+await as('operator');
+const live = await reportService.getSummary();
+const snap = await reportService.saveSnapshot({ title: `E2E briefing ${stamp}`, notes: 'Integration check' });
+check('operator saves snapshot (stored in MongoDB)', /^[0-9a-f]{24}$/.test(snap.id) && snap.highlights.totalIncidents === live.totals.incidents);
+await as('teamlead');
+await expectError('team lead cannot save snapshots', () => reportService.saveSnapshot({ title: 'Not allowed' }), 403);
+const savedList = await reportService.listSnapshots();
+check('saved reports listed newest first', savedList[0]?.id === snap.id && savedList[0].report === null);
+const opened = await reportService.getSnapshot(snap.id);
+check('opened snapshot has the live report shape', opened.report.totals.incidents === live.totals.incidents && opened.report.shelterOccupancy.length === live.shelterOccupancy.length);
+await as('admin');
+await reportService.deleteSnapshot(snap.id);
+await expectError('deleted snapshot is gone', () => reportService.getSnapshot(snap.id), 404);
+
 // 10. Token expiry / refresh / logout ----------------------------------------
 console.log('\n== Token handling');
 await as('coordinator');

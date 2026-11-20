@@ -373,6 +373,7 @@ const ENTITY_MODULE = {
   allocation: 'Allocation',
   dispatch: 'Dispatch',
   user: 'Users',
+  situation_report: 'Reports',
 };
 
 export const activityAdapter = {
@@ -413,6 +414,27 @@ export const dashboardAdapter = {
 };
 
 const sum = (items, key) => items.reduce((total, item) => total + (Number(item[key]) || 0), 0);
+
+/** Saved situation report; `report` (only on the detail call) has the same shape as the live report. */
+export const snapshotAdapter = {
+  fromApi: (s) => ({
+    id: s.id, // MongoDB ObjectId string
+    title: s.title,
+    notes: s.notes || '',
+    createdAt: s.created_at,
+    createdBy: s.created_by?.full_name || '',
+    generatedAt: s.generated_at,
+    highlights: {
+      totalIncidents: s.highlights?.total_incidents,
+      activeIncidents: s.highlights?.active_incidents,
+      criticalIncidents: s.highlights?.critical_incidents,
+      pendingRequests: s.highlights?.pending_requests,
+      peopleAffected: s.highlights?.people_affected,
+    },
+    // eslint-disable-next-line no-use-before-define
+    report: s.data ? reportAdapter.fromApi(s.data) : null,
+  }),
+};
 
 export const reportAdapter = {
   fromApi: ({ generated_at: generatedAt, dashboard, incidents, resources, shelters, teams }) => {

@@ -1,17 +1,70 @@
-import { BarChart3, Download, Printer, RefreshCw } from 'lucide-react';
+import { useState } from 'react';
+import { Archive, BarChart3, Download, Eye, History, Printer, RefreshCw, Save, Trash2 } from 'lucide-react';
 import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import PageHeader from '../../components/common/PageHeader';
-import { PageLoader } from '../../components/common/Spinner';
-import { ErrorState } from '../../components/common/EmptyState';
+import Spinner, { PageLoader } from '../../components/common/Spinner';
+import EmptyState, { ErrorState } from '../../components/common/EmptyState';
 import StatusBadge from '../../components/common/StatusBadge';
 import ProgressBar from '../../components/common/ProgressBar';
+import Modal from '../../components/common/Modal';
+import EntityForm from '../../components/common/EntityForm';
+import ConfirmDialog from '../../components/common/ConfirmDialog';
 import ChartCard from '../../components/dashboard/ChartCard';
 import ToneBarChart from '../../components/dashboard/ToneBarChart';
 import reportService from '../../services/reportService';
+import useAuth from '../../hooks/useAuth';
 import useFetch from '../../hooks/useFetch';
 import useToast from '../../hooks/useToast';
 import { CATEGORICAL, CHART_INK } from '../../utils/chartColors';
-import { downloadCsv, formatDateTime, formatNumber, percent } from '../../utils/formatters';
+import { downloadCsv, formatDateTime, formatNumber, getErrorMessage, percent, timeAgo } from '../../utils/formatters';
+
+const SNAPSHOT_FIELDS = [
+  { name: 'title', label: 'Title', required: true, minLength: 3, maxLength: 150, col: 12, placeholder: 'e.g. 08:00 morning briefing' },
+  { name: 'notes', label: 'Notes', type: 'textarea', rows: 3, maxLength: 2000, col: 12, placeholder: 'Context for whoever reads this report later' },
+];
+
+/** Saved situation reports (stored in MongoDB). Opening one shows it in place of the live report. */
+function SavedReports({ items, loading, error, openingId, onOpen, onDelete, canDelete }) {
+  return (
+    <ChartCard title="Saved situation reports" subtitle="Snapshots of the report frozen at the time they were saved" action={<History size={16} className="text-muted" />}>
+      {loading ? (
+        <PageLoader label="Loading saved reports…" />
+      ) : error ? (
+        <p className="text-muted small mb-0">Saved reports are unavailable right now: {error}</p>
+      ) : !items.length ? (
+        <EmptyState title="No saved reports yet" message="Use “Save snapshot” to keep a copy of the current situation report." />
+      ) : (
+        <ul className="simple-list">
+          {items.map((s) => (
+            <li key={s.id}>
+              <span className="min-w-0">
+                <strong>{s.title}</strong>
+                <span className="d-block small text-muted">
+                  {s.createdBy} · {formatDateTime(s.createdAt)} ({timeAgo(s.createdAt)})
+                </span>
+                <span className="d-block small">
+                  {formatNumber(s.highlights.totalIncidents)} incidents · {formatNumber(s.highlights.activeIncidents)} active ·{' '}
+                  {formatNumber(s.highlights.criticalIncidents)} critical · {formatNumber(s.highlights.peopleAffected)} people affected
+                </span>
+                {s.notes && <span className="d-block small text-muted fst-italic">{s.notes}</span>}
+              </span>
+              <span className="d-flex gap-1 flex-shrink-0 no-print">
+                <button type="button" className="btn btn-sm btn-outline-primary" onClick={() => onOpen(s)} disabled={Boolean(openingId)}>
+                  {openingId === s.id ? <Spinner size="sm" /> : <Eye size={14} />} Open
+                </button>
+                {canDelete && (
+                  <button type="button" className="btn btn-sm btn-outline-danger" onClick={() => onDelete(s)} aria-label={`Delete ${s.title}`}>
+                    <Trash2 size={14} />
+                  </button>
+                )}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </ChartCard>
+  );
+}
 
 function ShelterTooltip({ active, payload, label }) {
   if (!active || !payload?.length) return null;
@@ -29,7 +82,52 @@ function ShelterTooltip({ active, payload, label }) {
 
 export default function ReportsPage() {
   const toast = useToast();
-  const { data, loading, error, reload } = useFetch(() => reportService.getSummary(), []);
+  const { can } = useAuth();
+  const { data: liveData, loading, error, reload } = useFetch(() => reportService.getSummary(), []);
+  const saved = useFetch(() => reportService.listSnapshots(), [], []);
+  const [snapshot, setSnapshot] = useState(null); // saved report currently shown instead of the live one
+  const [openingId, setOpeningId] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(null);
+
+  const data = snapshot?.report || liveData;
+
+  const openSnapshot = async (item) => {
+    setOpeningId(item.id);
+    try {
+      setSnapshot(await reportService.getSnapshot(item.id));
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } catch (err) {
+      toast.error(getErrorMessage(err));
+    } finally {
+      setOpeningId(null);
+    }
+  };
+
+  const saveSnapshot = async (values) => {
+    try {
+      const created = await reportService.saveSnapshot(values);
+      toast.success(`“${created.title}” saved`, 'Situation report saved');
+      setSaving(false);
+      await saved.reload({ silent: true });
+      reload({ silent: true }); // the live report shows the moment it was saved
+    } catch (err) {
+      toast.error(getErrorMessage(err));
+      throw err;
+    }
+  };
+
+  const deleteSnapshot = async () => {
+    try {
+      await reportService.deleteSnapshot(deleting.id);
+      toast.success(`“${deleting.title}” deleted`);
+      if (snapshot?.id === deleting.id) setSnapshot(null);
+      setDeleting(null);
+      await saved.reload({ silent: true });
+    } catch (err) {
+      toast.error(getErrorMessage(err));
+    }
+  };
 
   const exportCsv = () => {
     if (!data) return;
@@ -44,7 +142,8 @@ export default function ReportsPage() {
       ...data.supplyLevels.map((r) => ({ section: 'Supply levels', metric: r.name, value: r.quantity, total: r.dispatched })),
       ...Object.entries(data.completedOperations).map(([k, v]) => ({ section: 'Completed operations', metric: k, value: v, total: '' })),
     ];
-    downloadCsv(`situation-report-${new Date().toISOString().slice(0, 10)}.csv`, rows);
+    const day = (snapshot ? new Date(snapshot.generatedAt) : new Date()).toISOString().slice(0, 10);
+    downloadCsv(`situation-report-${day}${snapshot ? '-saved' : ''}.csv`, rows);
     toast.success('Situation report exported as CSV');
   };
 
@@ -55,13 +154,18 @@ export default function ReportsPage() {
     <div className="page report-page">
       <PageHeader
         title="Reports & Situation Summary"
-        subtitle={data ? `Generated ${formatDateTime(data.generatedAt)}` : 'Consolidated operational picture'}
+        subtitle={data ? `${snapshot ? 'Saved report · generated' : 'Generated'} ${formatDateTime(data.generatedAt)}` : 'Consolidated operational picture'}
         icon={BarChart3}
         actions={
           <div className="d-flex gap-2 no-print">
-            <button type="button" className="btn btn-outline-secondary" onClick={() => reload()} disabled={loading}>
+            <button type="button" className="btn btn-outline-secondary" onClick={() => { setSnapshot(null); reload(); saved.reload({ silent: true }); }} disabled={loading}>
               <RefreshCw size={16} /> <span className="d-none d-sm-inline">Refresh</span>
             </button>
+            {can('reports', 'snapshot') && !snapshot && (
+              <button type="button" className="btn btn-outline-primary" onClick={() => setSaving(true)} disabled={!liveData}>
+                <Save size={16} /> <span className="d-none d-sm-inline">Save snapshot</span>
+              </button>
+            )}
             <button type="button" className="btn btn-outline-secondary" onClick={() => window.print()} disabled={!data}>
               <Printer size={16} /> <span className="d-none d-sm-inline">Print</span>
             </button>
@@ -72,7 +176,23 @@ export default function ReportsPage() {
         }
       />
 
-      {error && <ErrorState message={error} onRetry={() => reload()} />}
+      {snapshot && (
+        <div className="alert-banner alert-banner--info" role="status">
+          <Archive size={20} className="flex-shrink-0" />
+          <div className="flex-grow-1">
+            <strong>Viewing saved report “{snapshot.title}”</strong>
+            <div className="small">
+              Saved by {snapshot.createdBy} on {formatDateTime(snapshot.createdAt)}. Figures are frozen at that time.
+              {snapshot.notes && <> Notes: {snapshot.notes}</>}
+            </div>
+          </div>
+          <button type="button" className="btn btn-sm btn-primary no-print" onClick={() => setSnapshot(null)}>
+            Back to live report
+          </button>
+        </div>
+      )}
+
+      {error && !snapshot && <ErrorState message={error} onRetry={() => reload()} />}
       {loading && !data && <PageLoader label="Compiling situation report…" />}
 
       {data && (
@@ -194,6 +314,30 @@ export default function ReportsPage() {
           </ChartCard>
         </>
       )}
+
+      <div className="no-print">
+        <SavedReports
+          items={saved.data || []}
+          loading={saved.loading}
+          error={saved.error}
+          openingId={openingId}
+          onOpen={openSnapshot}
+          onDelete={setDeleting}
+          canDelete={can('reports', 'deleteSnapshot')}
+        />
+      </div>
+
+      <Modal open={saving} title="Save situation report" subtitle="Freezes the current report so it can be reviewed later" onClose={() => setSaving(false)} size="sm" closeOnBackdrop={false}>
+        {saving && <EntityForm fields={SNAPSHOT_FIELDS} initialValues={{}} onSubmit={saveSnapshot} onCancel={() => setSaving(false)} submitLabel="Save snapshot" />}
+      </Modal>
+
+      <ConfirmDialog
+        open={Boolean(deleting)}
+        title="Delete saved report?"
+        message={deleting && <><strong>{deleting.title}</strong> will be permanently removed. This action cannot be undone.</>}
+        onConfirm={deleteSnapshot}
+        onCancel={() => setDeleting(null)}
+      />
     </div>
   );
 }

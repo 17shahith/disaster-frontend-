@@ -252,6 +252,7 @@ a { color: var(--info); }
 /* ---------- Alerts ---------- */
 .alert-banner { display: flex; gap: 12px; padding: 14px 16px; border-radius: var(--radius); border: 1px solid; }
 .alert-banner--danger { background: var(--danger-soft); border-color: #f5c2c2; color: #8f1d1d; }
+.alert-banner--info { background: var(--info-soft); border-color: #b9d4f5; color: #17457e; align-items: center; }
 .alert-banner ul { margin: 6px 0 0; padding-left: 18px; font-size: 13px; }
 
 /* ---------- Modal ---------- */

@@ -94,6 +94,7 @@ New users can also sign up on the **Create account** page. Self-registration off
   - Workflow: Prepared → Dispatched → In Transit → Delivered → Completed. Stock is deducted when the dispatch is marked Dispatched.
   - One-click "mark dispatched / delivered / completed" actions and a timeline with the time of each stage as recorded by the server.
 - **Reports**: situation summary, incident distribution, resource utilisation, team availability, shelter occupancy (chart and table), supply levels and completed operations, from a single snapshot (`GET /api/reports/summary`). Export to CSV or print.
+  - **Saved situation reports**: Operators and Coordinators can **Save snapshot** to freeze the current report, with a title and notes. Every role can open a saved report in the same view, marked by a banner, and go back to the live report. Only Administrators can delete one. The backend stores snapshots in MongoDB; if MongoDB is unavailable, the list shows a short notice and everything else keeps working.
 - **User management** (Administrator only): create, edit, assign roles, and deactivate accounts by setting the account status to Inactive. Accounts are never deleted, so the audit history is kept.
 
 Shared across all modules:
@@ -170,6 +171,7 @@ Pages never call Axios directly. They use the service modules, and the services 
 | Auth | `POST /auth/login`, `POST /auth/register`, `POST /auth/refresh`, `POST /auth/logout`, `GET /auth/profile` |
 | Dashboard | `GET /reports/dashboard` |
 | Reports | `GET /reports/summary` |
+| Saved situation reports | `GET / POST /reports/snapshots`, `GET / DELETE /reports/snapshots/{id}` |
 | Incidents, requests, teams, shelters, supplies | `GET / POST /{resource}`, `GET / PUT / DELETE /{resource}/{id}` |
 | Allocations | `GET / POST /allocations`, `GET / PUT /allocations/{id}` (allocations are cancelled, never deleted) |
 | Dispatch | `GET / POST /dispatch`, `GET / PUT / DELETE /dispatch/{id}` (delete only while Prepared) |
@@ -193,7 +195,7 @@ This runs the **real frontend service layer** (the services, the adapters and th
 - Allocation → dispatch → delivery, including the inventory deduction.
 - Role-based (403) responses, token refresh, expiry and logout revocation.
 
-It then prints a PASS/FAIL line for each of the 63 checks.
+It also saves, lists, opens and deletes a situation-report snapshot in MongoDB. It then prints a PASS/FAIL line for each of the 68 checks.
 
 Requirements:
 - The backend must be running at `http://127.0.0.1:5000` and seeded with `flask seed`.

@@ -12,6 +12,7 @@ export const ENDPOINTS = {
   },
   dashboard: '/reports/dashboard',
   reports: '/reports/summary',
+  snapshots: '/reports/snapshots',
   incidents: '/incidents',
   requests: '/requests',
   teams: '/teams',
