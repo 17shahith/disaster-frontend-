@@ -8,17 +8,36 @@ import teamService from '../../services/teamService';
 import useAuth from '../../hooks/useAuth';
 import useFetch from '../../hooks/useFetch';
 import useLookups, { lookupName } from '../../hooks/useLookups';
-import { TEAM_STATUS, TEAM_TYPES } from '../../utils/constants';
+import { ROLES, TEAM_MANUAL_STATUS, TEAM_STATUS, TEAM_TYPES } from '../../utils/constants';
 import { formatDateTime, timeAgo } from '../../utils/formatters';
 
-const FORM_FIELDS = [
+/** 'Assigned' is set by allocation only; new teams start Available or Unavailable. */
+const availabilityOptions = (v) => {
+  if (!v.id) return ['Available', 'Unavailable'];
+  return v.status === 'Assigned' ? TEAM_STATUS : TEAM_MANUAL_STATUS;
+};
+
+/**
+ * The team leader is a Response Team Lead account (it decides who may manage the team).
+ * Administrators choose the lead; a team lead registering a team becomes its lead automatically.
+ */
+const buildFormFields = (isAdmin) => [
   { name: 'name', label: 'Team name', required: true, minLength: 3, col: 8 },
   { name: 'type', label: 'Team type', type: 'select', options: TEAM_TYPES, required: true, col: 4 },
-  { name: 'leader', label: 'Team leader', required: true, col: 6 },
+  ...(isAdmin
+    ? [{
+        name: 'leadId',
+        label: 'Team leader',
+        type: 'select',
+        col: 6,
+        placeholder: 'No leader assigned',
+        options: (_v, l) => (l.leads || []).map((u) => ({ value: u.id, label: `${u.name} (${u.email})` })),
+      }]
+    : []),
   { name: 'contact', label: 'Contact number', type: 'tel', required: true, col: 6 },
   { name: 'members', label: 'Members', type: 'number', min: 1, max: 500, required: true, col: 4 },
   { name: 'baseLocation', label: 'Base location', required: true, col: 4 },
-  { name: 'status', label: 'Availability', type: 'select', options: TEAM_STATUS, required: true, col: 4 },
+  { name: 'status', label: 'Availability', type: 'select', options: availabilityOptions, required: true, col: 4 },
 ];
 
 function TeamAssignments({ teamId, lookups }) {
@@ -50,8 +69,10 @@ function TeamAssignments({ teamId, lookups }) {
 }
 
 export default function TeamsPage() {
-  const { can } = useAuth();
-  const { lookups, reloadLookups } = useLookups(['incidents', 'requests', 'teams', 'shelters', 'supplies']);
+  const { can, role } = useAuth();
+  const isAdmin = role === ROLES.ADMIN;
+  // The team-lead account list is administrator-only data, so only admins request it.
+  const { lookups, reloadLookups } = useLookups(['incidents', 'requests', 'teams', 'shelters', 'supplies', ...(isAdmin ? ['leads'] : [])]);
   const [assigning, setAssigning] = useState(null);
   const [refreshKey, setRefreshKey] = useState(0);
 
@@ -115,11 +136,11 @@ export default function TeamsPage() {
           { key: 'status', label: 'availability', options: TEAM_STATUS },
           { key: 'type', label: 'team types', options: TEAM_TYPES },
         ]}
-        formFields={FORM_FIELDS}
+        formFields={buildFormFields(isAdmin)}
         defaultValues={{ status: 'Available', members: 10 }}
         detailFields={detailFields}
         renderDetailsExtra={(t) => <TeamAssignments teamId={t.id} lookups={lookups} />}
-        statusConfig={{ options: TEAM_STATUS, label: 'Availability', title: 'Update team availability', actionLabel: 'Update availability' }}
+        statusConfig={{ options: TEAM_MANUAL_STATUS, label: 'Availability', title: 'Update team availability', actionLabel: 'Update availability' }}
         lookups={lookups}
         refreshKey={refreshKey}
         onChanged={reloadLookups}

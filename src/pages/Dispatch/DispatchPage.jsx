@@ -1,4 +1,4 @@
-import { CheckCircle2, PackageCheck, Truck } from 'lucide-react';
+import { CheckCircle2, PackageCheck, Send, Truck } from 'lucide-react';
 import { useState } from 'react';
 import CrudPage from '../../components/common/CrudPage';
 import StatusBadge from '../../components/common/StatusBadge';
@@ -6,28 +6,35 @@ import dispatchService from '../../services/dispatchService';
 import useAuth from '../../hooks/useAuth';
 import useToast from '../../hooks/useToast';
 import useLookups, { lookupName } from '../../hooks/useLookups';
-import { DISPATCH_STATUS } from '../../utils/constants';
-import { formatDateTime, fromDateTimeInput, getErrorMessage, toDateTimeInput } from '../../utils/formatters';
-import { RESOURCE_COLLECTION } from '../Allocations/allocationFields';
+import { DISPATCH_STATUS, DISPATCHABLE_ALLOCATION_STATUS } from '../../utils/constants';
+import { formatDateTime, formatNumber, getErrorMessage } from '../../utils/formatters';
 
-const STAGES = ['Pending', 'In Transit', 'Delivered', 'Completed'];
+/** Every stage is time-stamped by the server when the status changes. */
+const STAGES = [
+  { status: 'Prepared', label: 'Recorded', time: (d) => d.createdAt },
+  { status: 'Dispatched', label: 'Dispatched', time: (d) => d.dispatchTime },
+  { status: 'In Transit', label: 'In Transit', time: (d) => d.inTransitAt },
+  { status: 'Delivered', label: 'Delivered', time: (d) => d.deliveredAt },
+  { status: 'Completed', label: 'Completed', time: (d) => d.completedAt },
+];
 
 /** Small horizontal timeline showing dispatch → delivery → completion. */
 function DispatchTimeline({ item }) {
-  const reached = item.status === 'Cancelled' ? -1 : STAGES.indexOf(item.status);
-  const times = [null, item.dispatchTime, item.deliveredAt, item.completedAt];
+  const reached = DISPATCH_STATUS.indexOf(item.status);
   return (
     <ol className="timeline">
       {STAGES.map((stage, i) => (
-        <li key={stage} className={i <= reached ? 'done' : ''}>
+        <li key={stage.status} className={i <= reached ? 'done' : ''}>
           <span className="timeline__dot" />
-          <strong>{stage === 'Pending' ? 'Recorded' : stage}</strong>
-          <small>{i === 0 ? formatDateTime(item.createdAt) : formatDateTime(times[i])}</small>
+          <strong>{stage.label}</strong>
+          <small>{formatDateTime(stage.time(item))}</small>
         </li>
       ))}
     </ol>
   );
 }
+
+const isEdit = (v) => Boolean(v.id);
 
 export default function DispatchPage() {
   const { can } = useAuth();
@@ -35,14 +42,19 @@ export default function DispatchPage() {
   const { lookups, loaded, reloadLookups } = useLookups(['incidents', 'allocations', 'teams', 'shelters', 'supplies']);
   const [refreshKey, setRefreshKey] = useState(0);
 
-  const describeAllocation = (a) => {
-    const name = lookupName(lookups[RESOURCE_COLLECTION[a.resourceType]], a.resourceId);
-    return a.resourceType === 'Response Team' ? name : `${a.quantity} × ${name}`;
-  };
+  const describeAllocation = (a) => (a.resourceType === 'Response Team' ? a.resourceName : `${a.quantity} × ${a.resourceName}`);
 
   const prefillFromAllocation = (allocationId) => {
     const a = lookups.allocations.find((x) => x.id === allocationId);
-    return a ? { allocationId: a.id, incidentId: a.incidentId, resourceSummary: describeAllocation(a) } : {};
+    if (!a) return {};
+    const incident = lookups.incidents.find((i) => i.id === a.incidentId);
+    const shelter = a.resourceType === 'Shelter' ? lookups.shelters.find((s) => s.id === a.resourceId) : null;
+    return {
+      allocationId: a.id,
+      incidentId: a.incidentId,
+      quantity: a.remainingQuantity,
+      destination: shelter?.location || incident?.location || '',
+    };
   };
 
   const formFields = [
@@ -50,36 +62,44 @@ export default function DispatchPage() {
       name: 'allocationId',
       label: 'Linked allocation',
       type: 'select',
+      required: true,
       col: 12,
-      placeholder: 'Not linked to an allocation',
+      help: 'Dispatches are recorded against an approved or allocated resource allocation',
       options: (values) =>
         lookups.allocations
-          .filter((a) => ['Planned', 'Allocated', 'Dispatched'].includes(a.status) || a.id === values.allocationId)
-          .map((a) => ({ value: a.id, label: `${a.id} · ${a.resourceType}: ${describeAllocation(a)}` })),
-      onChange: (value) => (value ? prefillFromAllocation(value) : {}),
+          .filter((a) => (DISPATCHABLE_ALLOCATION_STATUS.includes(a.status) && a.remainingQuantity > 0) || a.id === values.allocationId)
+          .map((a) => ({
+            value: a.id,
+            label: `${a.id} · ${a.resourceType}: ${describeAllocation(a)} — ${formatNumber(a.remainingQuantity)} left to dispatch`,
+          })),
+      onChange: (value) => (value ? prefillFromAllocation(value) : { incidentId: '', quantity: '' }),
+      disabled: isEdit,
     },
     {
       name: 'incidentId',
       label: 'Incident',
       type: 'select',
-      required: true,
       col: 12,
+      placeholder: 'Set by the selected allocation',
       options: () => lookups.incidents.map((i) => ({ value: i.id, label: `${i.id} · ${i.title}` })),
+      disabled: true,
     },
-    { name: 'resourceSummary', label: 'Resources dispatched', required: true, minLength: 3, col: 12, placeholder: 'e.g. 500 food packets, 2 rescue boats' },
-    { name: 'origin', label: 'From (origin)', required: true, col: 6 },
-    { name: 'destination', label: 'To (destination)', required: true, col: 6 },
+    {
+      name: 'quantity',
+      label: 'Quantity dispatched',
+      type: 'number',
+      min: 1,
+      required: true,
+      col: 4,
+      help: 'Units, people or responders; cannot exceed what is left on the allocation',
+      disabled: (v) => isEdit(v) && v.status !== 'Prepared',
+    },
+    { name: 'origin', label: 'From (origin)', required: true, col: 4 },
+    { name: 'destination', label: 'To (destination)', required: true, col: 4 },
     { name: 'vehicle', label: 'Vehicle number', required: true, col: 4, placeholder: 'KA-01-AB-1234' },
     { name: 'driver', label: 'Driver / escort', col: 4 },
-    { name: 'status', label: 'Dispatch status', type: 'select', options: DISPATCH_STATUS, required: true, col: 4 },
-    {
-      name: 'dispatchTime',
-      label: 'Dispatch time',
-      type: 'datetime-local',
-      col: 6,
-      showIf: (v) => v.status && v.status !== 'Pending',
-      required: true,
-    },
+    // New dispatches start as Prepared; stock leaves the warehouse when marked Dispatched.
+    { name: 'status', label: 'Dispatch status', type: 'select', options: DISPATCH_STATUS, required: true, col: 4, showIf: isEdit },
     { name: 'notes', label: 'Notes', type: 'textarea', rows: 2, col: 12 },
   ];
 
@@ -92,7 +112,7 @@ export default function DispatchPage() {
           <div className="fw-semibold">{d.resourceSummary}</div>
           <div className="small text-muted">
             {d.id}
-            {d.allocationId && ` · ${d.allocationId}`}
+            {d.allocationId && ` · allocation ${d.allocationId}`}
           </div>
         </>
       ),
@@ -102,11 +122,11 @@ export default function DispatchPage() {
       label: 'Route',
       render: (d) => (
         <span className="small">
-          {d.origin} <span className="text-muted">→</span> {d.destination}
+          {d.origin || '—'} <span className="text-muted">→</span> {d.destination}
         </span>
       ),
     },
-    { key: 'vehicle', label: 'Vehicle', render: (d) => <span className="small text-nowrap">{d.vehicle}</span> },
+    { key: 'vehicle', label: 'Vehicle', render: (d) => <span className="small text-nowrap">{d.vehicle || '—'}</span> },
     { key: 'status', label: 'Status', render: (d) => <StatusBadge value={d.status} /> },
     { key: 'dispatchTime', label: 'Dispatched', render: (d) => <span className="small text-nowrap">{formatDateTime(d.dispatchTime)}</span>, sortValue: (d) => d.dispatchTime || '' },
     {
@@ -126,25 +146,30 @@ export default function DispatchPage() {
     { label: 'Resources', key: 'resourceSummary', full: true },
     { label: 'Incident', render: (d) => lookupName(lookups.incidents, d.incidentId) },
     { label: 'Allocation', render: (d) => d.allocationId || '—' },
-    { label: 'Origin', key: 'origin' },
+    { label: 'Origin', render: (d) => d.origin || '—' },
     { label: 'Destination', key: 'destination' },
-    { label: 'Vehicle', key: 'vehicle' },
+    { label: 'Vehicle', render: (d) => d.vehicle || '—' },
     { label: 'Driver / escort', render: (d) => d.driver || '—' },
+    { label: 'Delivery team', render: (d) => d.teamName || '—' },
     { label: 'Status', render: (d) => <StatusBadge value={d.status} /> },
-    { label: 'Notes', render: (d) => d.notes || '—' },
+    { label: 'Recorded by', render: (d) => d.createdBy || '—' },
+    { label: 'Notes', render: (d) => d.notes || '—', full: true },
+    { label: 'Completion notes', render: (d) => d.completionNotes || '—', full: true },
   ];
 
   const quickStatus = async (row, status) => {
     try {
-      await dispatchService.updateStatus(row.id, status, { timestamp: new Date().toISOString() });
+      await dispatchService.updateStatus(row.id, status);
       toast.success(`${row.id} marked as ${status}`);
       setRefreshKey((k) => k + 1);
+      reloadLookups();
     } catch (err) {
       toast.error(getErrorMessage(err));
     }
   };
 
   const canStatus = can('dispatch', 'status');
+  const canDispatch = can('dispatch', 'edit'); // only coordinators/admins release goods from the warehouse
 
   return (
     <CrudPage
@@ -156,8 +181,8 @@ export default function DispatchPage() {
       createLabel="Record Dispatch"
       service={dispatchService}
       tabs={[
-        { key: 'open', label: 'Open dispatches', filter: (d) => !['Completed', 'Cancelled'].includes(d.status) },
-        { key: 'history', label: 'Dispatch history', filter: (d) => ['Completed', 'Cancelled'].includes(d.status) },
+        { key: 'open', label: 'Open dispatches', filter: (d) => d.status !== 'Completed' },
+        { key: 'history', label: 'Dispatch history', filter: (d) => d.status === 'Completed' },
         { key: 'all', label: 'All' },
       ]}
       columns={columns}
@@ -168,13 +193,7 @@ export default function DispatchPage() {
         { key: 'incidentId', label: 'incidents', options: lookups.incidents.map((i) => ({ value: i.id, label: `${i.id} · ${i.title}` })) },
       ]}
       formFields={formFields}
-      defaultValues={{ status: 'Pending', dispatchTime: toDateTimeInput(new Date()) }}
-      toFormValues={(d) => ({ ...d, allocationId: d.allocationId || '', dispatchTime: toDateTimeInput(d.dispatchTime) || toDateTimeInput(new Date()) })}
-      toPayload={(v) => ({
-        ...v,
-        allocationId: v.allocationId || null,
-        dispatchTime: v.status === 'Pending' ? null : fromDateTimeInput(v.dispatchTime),
-      })}
+      defaultValues={{}}
       prefillFromParams={(params) => {
         const id = params.get('allocation');
         if (!id) return {};
@@ -184,7 +203,7 @@ export default function DispatchPage() {
       renderDetailsExtra={(d) => (
         <div className="mt-4">
           <h3 className="section-title">Dispatch timeline</h3>
-          {d.status === 'Cancelled' ? <p className="text-muted small">This dispatch was cancelled.</p> : <DispatchTimeline item={d} />}
+          <DispatchTimeline item={d} />
         </div>
       )}
       statusConfig={{
@@ -194,30 +213,35 @@ export default function DispatchPage() {
         actionLabel: 'Record progress',
         extraFields: [
           {
-            name: 'timestamp',
-            label: 'Time of event',
-            type: 'datetime-local',
-            required: true,
+            name: 'note',
+            label: 'Note',
+            type: 'textarea',
+            rows: 2,
             col: 12,
-            help: 'Used as the dispatch, delivery or completion time',
-            validate: (v) => (new Date(v) > new Date(Date.now() + 5 * 60000) ? 'Time cannot be in the future' : null),
+            placeholder: 'Received by, remarks…',
+            help: 'The time of each stage is recorded automatically',
           },
-          { name: 'note', label: 'Note', type: 'textarea', rows: 2, col: 12, placeholder: 'Received by, remarks…' },
         ],
-        initialExtra: () => ({ timestamp: toDateTimeInput(new Date()) }),
-        toExtra: (extra) => ({ ...extra, timestamp: fromDateTimeInput(extra.timestamp) }),
       }}
       lookups={lookups}
       refreshKey={refreshKey}
       onChanged={reloadLookups}
       rowActions={(row) => [
         {
+          key: 'dispatch',
+          label: 'Mark dispatched now',
+          icon: Send,
+          tone: 'warning',
+          onClick: () => quickStatus(row, 'Dispatched'),
+          hidden: !canDispatch || row.status !== 'Prepared',
+        },
+        {
           key: 'deliver',
           label: 'Mark delivered now',
           icon: PackageCheck,
           tone: 'success',
           onClick: () => quickStatus(row, 'Delivered'),
-          hidden: !canStatus || row.status !== 'In Transit',
+          hidden: !canStatus || !['Dispatched', 'In Transit'].includes(row.status),
         },
         {
           key: 'complete',

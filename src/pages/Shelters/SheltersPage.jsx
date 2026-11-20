@@ -8,7 +8,7 @@ import EntityForm from '../../components/common/EntityForm';
 import shelterService from '../../services/shelterService';
 import useAuth from '../../hooks/useAuth';
 import useToast from '../../hooks/useToast';
-import { SHELTER_STATUS } from '../../utils/constants';
+import { ACTIVE_SHELTER_STATUS, SHELTER_STATUS } from '../../utils/constants';
 import { formatDateTime, formatNumber, getErrorMessage, percent } from '../../utils/formatters';
 
 const freeBeds = (s) => Math.max(0, Number(s.capacity) - Number(s.occupancy));
@@ -64,7 +64,7 @@ const detailFields = [
 ];
 
 function ShelterSummary({ items }) {
-  const open = items.filter((s) => s.status !== 'Closed');
+  const open = items.filter((s) => ACTIVE_SHELTER_STATUS.includes(s.status));
   const capacity = open.reduce((a, s) => a + Number(s.capacity), 0);
   const occupancy = open.reduce((a, s) => a + Number(s.occupancy), 0);
   return (

@@ -1,14 +1,13 @@
-import api, { unwrapList } from './api';
+import { fetchAll } from './api';
 import { createCrudService } from './crudService';
 import { ENDPOINTS } from './endpoints';
+import { allocationAdapter, teamAdapter } from './adapters';
 
 const teamService = {
-  ...createCrudService(ENDPOINTS.teams),
+  ...createCrudService(ENDPOINTS.teams, teamAdapter),
   /** Allocation history for one team (team assignments). */
   getAssignments: (teamId) =>
-    api
-      .get(ENDPOINTS.allocations, { params: { resourceType: 'Response Team', resourceId: teamId } })
-      .then((r) => unwrapList(r.data)),
+    fetchAll(ENDPOINTS.allocations, { team_id: teamId }).then((items) => items.map(allocationAdapter.fromApi)),
 };
 
 export default teamService;

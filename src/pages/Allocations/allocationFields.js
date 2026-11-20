@@ -1,6 +1,8 @@
-import { ALLOCATION_STATUS, RESOURCE_TYPES } from '../../utils/constants';
+import { ALLOCATION_STATUS, CLOSED_INCIDENT_STATUS, RESOURCE_TYPES } from '../../utils/constants';
 
-const OPEN_INCIDENT = (i) => !['Closed'].includes(i.status);
+/** Completed or closed incidents cannot receive allocations until they are reopened. */
+const OPEN_INCIDENT = (i) => !CLOSED_INCIDENT_STATUS.includes(i.status);
+const isEdit = (v) => Boolean(v.id);
 
 export const RESOURCE_COLLECTION = {
   'Response Team': 'teams',
@@ -22,14 +24,14 @@ const resourceOptions = (values, lookups) => {
     return (lookups.shelters || []).map((s) => ({
       value: s.id,
       label: `${s.name} — ${Math.max(0, s.capacity - s.occupancy)} beds free`,
-      disabled: s.status === 'Closed' && s.id !== values.resourceId,
+      disabled: s.status !== 'Open' && s.id !== values.resourceId,
     }));
   }
   if (type === 'Relief Supply') {
     return (lookups.supplies || []).map((s) => ({
       value: s.id,
-      label: `${s.name} — ${s.quantity} ${s.unit} in stock`,
-      disabled: Number(s.quantity) <= 0 && s.id !== values.resourceId,
+      label: `${s.name} — ${s.available} ${s.unit} available`,
+      disabled: Number(s.available) <= 0 && s.id !== values.resourceId,
     }));
   }
   return [];
@@ -45,8 +47,10 @@ export const buildAllocationFields = () => [
     type: 'select',
     required: true,
     col: 6,
-    options: (_v, lookups) => (lookups.incidents || []).filter(OPEN_INCIDENT).map((i) => ({ value: i.id, label: `${i.id} · ${i.title}` })),
+    options: (v, lookups) =>
+      (lookups.incidents || []).filter((i) => OPEN_INCIDENT(i) || i.id === v.incidentId).map((i) => ({ value: i.id, label: `${i.id} · ${i.title}` })),
     onChange: () => ({ requestId: '' }),
+    disabled: isEdit, // an allocation cannot be moved to another incident
   },
   {
     name: 'requestId',
@@ -67,6 +71,7 @@ export const buildAllocationFields = () => [
     required: true,
     col: 4,
     onChange: (value) => ({ resourceId: '', quantity: value === 'Response Team' ? 1 : '' }),
+    disabled: isEdit,
   },
   {
     name: 'resourceId',
@@ -75,7 +80,7 @@ export const buildAllocationFields = () => [
     required: true,
     col: 8,
     options: resourceOptions,
-    disabled: (v) => !v.resourceType,
+    disabled: (v) => !v.resourceType || isEdit(v),
     placeholder: 'Select resource type first',
   },
   {
@@ -86,19 +91,23 @@ export const buildAllocationFields = () => [
     required: true,
     col: 4,
     showIf: (v) => v.resourceType && v.resourceType !== 'Response Team',
+    disabled: (v) => isEdit(v) && !['Pending', 'Approved'].includes(v.status),
     help: 'Supply units, or number of people for shelters',
   },
-  { name: 'status', label: 'Allocation status', type: 'select', options: ALLOCATION_STATUS, required: true, col: 4 },
+  // New allocations always start as Pending; the workflow is Pending -> Approved -> Allocated -> Completed.
+  { name: 'status', label: 'Allocation status', type: 'select', options: ALLOCATION_STATUS, required: true, col: 4, showIf: isEdit },
   { name: 'notes', label: 'Notes', type: 'textarea', col: 12, rows: 2, maxLength: 500 },
+  { name: 'progressNotes', label: 'Progress notes', type: 'textarea', col: 12, rows: 2, maxLength: 2000, showIf: isEdit },
 ];
 
 /** Cross-field validation that needs the lookup lists (stock / bed availability). */
 export const validateAllocation = (values, lookups) => {
+  if (isEdit(values)) return {}; // quantity changes are validated by the server against reservations
   const resource = findResource(values, lookups);
   if (!resource || values.resourceType === 'Response Team') return {};
   const qty = Number(values.quantity);
-  if (values.resourceType === 'Relief Supply' && qty > Number(resource.quantity)) {
-    return { quantity: `Only ${resource.quantity} ${resource.unit} in stock` };
+  if (values.resourceType === 'Relief Supply' && qty > Number(resource.available)) {
+    return { quantity: `Only ${resource.available} ${resource.unit} available` };
   }
   if (values.resourceType === 'Shelter' && qty > resource.capacity - resource.occupancy) {
     return { quantity: `Only ${Math.max(0, resource.capacity - resource.occupancy)} beds free` };
@@ -109,5 +118,5 @@ export const validateAllocation = (values, lookups) => {
 export const allocationPayload = (v) => ({
   ...v,
   requestId: v.requestId || null,
-  quantity: v.resourceType === 'Response Team' ? 1 : Number(v.quantity),
+  quantity: v.resourceType === 'Response Team' ? undefined : Number(v.quantity),
 });

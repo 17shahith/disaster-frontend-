@@ -72,19 +72,33 @@ export default function DashboardPage() {
         <>
           <div className="stat-grid">
             <StatCard label="Total incidents" value={s.totalIncidents} icon={Siren} tone="info" hint="All registered incidents" to={link('incidents', '/incidents')} />
-            <StatCard label="Active emergencies" value={s.activeEmergencies} icon={AlertOctagon} tone="danger" hint="Require immediate response" to={link('incidents', '/incidents')} />
-            <StatCard label="Pending requests" value={s.pendingRequests} icon={ClipboardList} tone="warning" hint="Awaiting approval / assignment" to={link('requests', '/requests')} />
+            <StatCard
+              label="Active emergencies"
+              value={s.activeEmergencies}
+              icon={AlertOctagon}
+              tone="danger"
+              hint={`${formatNumber(s.criticalIncidents)} critical · require immediate response`}
+              to={link('incidents', '/incidents')}
+            />
+            <StatCard label="Pending requests" value={s.pendingRequests} icon={ClipboardList} tone="warning" hint="Awaiting resource assignment" to={link('requests', '/requests')} />
             <StatCard label="Available teams" value={s.availableTeams} icon={Users} tone="success" hint={`of ${formatNumber(s.totalTeams)} registered teams`} to={link('teams', '/teams')} />
             <StatCard label="Active shelters" value={s.activeShelters} icon={BedDouble} tone="info" hint={`${formatNumber(s.availableBeds)} beds available`} to={link('shelters', '/shelters')} />
             <StatCard
-              label="Relief supplies in stock"
+              label="Relief supplies available"
               value={s.availableSupplies}
               icon={Boxes}
               tone={s.lowStockItems ? 'warning' : 'info'}
               hint={s.lowStockItems ? `${s.lowStockItems} item(s) at low stock` : 'All items above threshold'}
               to={link('supplies', '/supplies')}
             />
-            <StatCard label="Dispatched resources" value={s.dispatchedResources} icon={Truck} tone="warning" hint="In transit or delivered" to={link('dispatch', '/dispatch')} />
+            <StatCard
+              label="Dispatched resources"
+              value={s.dispatchedResources}
+              icon={Truck}
+              tone="warning"
+              hint={`On the road · ${formatNumber(s.activeAllocations)} active allocations`}
+              to={link('dispatch', '/dispatch')}
+            />
             <StatCard label="Completed operations" value={s.completedOperations} icon={CheckCircle2} tone="success" hint="Allocations & dispatches closed" to={link('allocations', '/allocations')} />
           </div>
 

@@ -6,12 +6,31 @@ import useAuth from '../../hooks/useAuth';
 import { ROLE_LABELS, ROLE_OPTIONS, USER_STATUS } from '../../utils/constants';
 import { formatDateTime } from '../../utils/formatters';
 
+const USERNAME_RE = /^[A-Za-z0-9_.-]{3,80}$/;
+const PASSWORD_RULE = (v) => (v && !(/[A-Za-z]/.test(v) && /\d/.test(v)) ? 'Password must contain at least one letter and one number' : null);
+
 const FORM_FIELDS = [
   { name: 'name', label: 'Full name', required: true, minLength: 3, col: 6 },
+  {
+    name: 'username',
+    label: 'Username',
+    required: true,
+    col: 6,
+    autoComplete: 'off',
+    validate: (v) => (USERNAME_RE.test(v) ? null : "3-80 characters: letters, numbers, '.', '_' or '-'"),
+  },
   { name: 'email', label: 'Email', type: 'email', required: true, col: 6, autoComplete: 'off' },
   { name: 'phone', label: 'Phone', type: 'tel', col: 6 },
   { name: 'role', label: 'Role', type: 'select', options: ROLE_OPTIONS, required: true, col: 6 },
-  { name: 'status', label: 'Account status', type: 'select', options: USER_STATUS, required: true, col: 6 },
+  {
+    name: 'status',
+    label: 'Account status',
+    type: 'select',
+    options: USER_STATUS,
+    required: true,
+    col: 6,
+    help: 'Set to Inactive to deactivate an account. Accounts are never deleted, so the audit history is kept.',
+  },
   {
     name: 'password',
     label: 'Password',
@@ -19,6 +38,7 @@ const FORM_FIELDS = [
     minLength: 8,
     col: 6,
     autoComplete: 'new-password',
+    validate: PASSWORD_RULE,
     help: 'Required for new users. Leave blank when editing to keep the current password.',
   },
 ];
@@ -45,6 +65,7 @@ const columns = [
 
 const detailFields = [
   { label: 'Name', key: 'name' },
+  { label: 'Username', key: 'username' },
   { label: 'Email', key: 'email' },
   { label: 'Role', render: (u) => ROLE_LABELS[u.role] },
   { label: 'Phone', render: (u) => u.phone || '—' },
@@ -64,7 +85,7 @@ export default function UsersPage() {
       createLabel="Add User"
       service={userService}
       columns={columns}
-      searchKeys={['id', 'name', 'email', 'phone']}
+      searchKeys={['id', 'name', 'username', 'email', 'phone']}
       searchPlaceholder="Search users by name or email…"
       filters={[
         { key: 'role', label: 'roles', options: ROLE_OPTIONS },

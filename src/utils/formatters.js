@@ -37,8 +37,26 @@ export const toDateTimeInput = (value) => {
 
 export const fromDateTimeInput = (value) => (value ? new Date(value).toISOString() : null);
 
-export const getErrorMessage = (error, fallback = 'Something went wrong. Please try again.') =>
-  error?.response?.data?.message || error?.message || fallback;
+const humanizeField = (key) => {
+  const text = key.replace(/_id$/, '').replace(/_/g, ' ');
+  return text.charAt(0).toUpperCase() + text.slice(1);
+};
+
+/**
+ * User-facing message for a failed request. Flask errors look like
+ * { success: false, message, errors: { field: 'reason' } }; field reasons are appended.
+ */
+export const getErrorMessage = (error, fallback = 'Something went wrong. Please try again.') => {
+  const data = error?.response?.data;
+  const message = data?.message || error?.message || fallback;
+  const details =
+    data?.errors && typeof data.errors === 'object'
+      ? Object.entries(data.errors)
+          .filter(([key, value]) => typeof value === 'string' && key !== 'token')
+          .map(([key, value]) => `${humanizeField(key)}: ${value}`)
+      : [];
+  return details.length ? `${message}. ${details.slice(0, 3).join(' ')}` : message;
+};
 
 export const downloadCsv = (filename, rows) => {
   if (!rows.length) return;

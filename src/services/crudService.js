@@ -1,12 +1,21 @@
-import api, { unwrap, unwrapList } from './api';
+import api, { fetchAll, unwrap } from './api';
 
-/** Builds the standard REST operations for a resource endpoint. */
-export const createCrudService = (endpoint) => ({
-  getAll: (params) => api.get(endpoint, { params }).then((r) => unwrapList(r.data)),
-  getById: (id) => api.get(`${endpoint}/${id}`).then((r) => unwrap(r.data)),
-  create: (data) => api.post(endpoint, data).then((r) => unwrap(r.data)),
-  update: (id, data) => api.put(`${endpoint}/${id}`, data).then((r) => unwrap(r.data)),
-  remove: (id) => api.delete(`${endpoint}/${id}`).then((r) => r.data),
-  updateStatus: (id, status, extra = {}) =>
-    api.patch(`${endpoint}/${id}/status`, { status, ...extra }).then((r) => unwrap(r.data)),
-});
+/**
+ * Builds the standard REST operations for a Flask resource endpoint.
+ * `adapter` converts between API records and UI objects (see adapters.js).
+ */
+export const createCrudService = (endpoint, adapter) => {
+  const fromApi = (r) => adapter.fromApi(unwrap(r.data));
+  return {
+    getAll: (params) => fetchAll(endpoint, params).then((items) => items.map(adapter.fromApi)),
+    getById: (id) => api.get(`${endpoint}/${id}`).then(fromApi),
+    create: (values) => api.post(endpoint, adapter.toApi(values, 'create')).then(fromApi),
+    update: (id, values) => api.put(`${endpoint}/${id}`, adapter.toApi(values, 'update')).then(fromApi),
+    remove: (id) => api.delete(`${endpoint}/${id}`).then((r) => unwrap(r.data)),
+    /** Status changes are ordinary partial updates; the backend validates the workflow. */
+    updateStatus: (id, status, extra = {}) => {
+      const body = adapter.statusToApi ? adapter.statusToApi(status, extra) : adapter.toApi({ status }, 'update');
+      return api.put(`${endpoint}/${id}`, body).then(fromApi);
+    },
+  };
+};

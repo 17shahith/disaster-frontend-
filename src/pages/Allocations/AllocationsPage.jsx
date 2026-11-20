@@ -5,7 +5,7 @@ import StatusBadge from '../../components/common/StatusBadge';
 import allocationService from '../../services/allocationService';
 import useAuth from '../../hooks/useAuth';
 import useLookups, { lookupName } from '../../hooks/useLookups';
-import { ALLOCATION_STATUS, RESOURCE_TYPES } from '../../utils/constants';
+import { ALLOCATION_STATUS, DISPATCHABLE_ALLOCATION_STATUS, RESOURCE_TYPES } from '../../utils/constants';
 import { formatDateTime, formatNumber, timeAgo } from '../../utils/formatters';
 import { RESOURCE_COLLECTION, allocationPayload, buildAllocationFields, validateAllocation } from './allocationFields';
 
@@ -16,7 +16,8 @@ export default function AllocationsPage() {
   const navigate = useNavigate();
   const { lookups, reloadLookups } = useLookups(['incidents', 'requests', 'teams', 'shelters', 'supplies']);
 
-  const resourceLabel = (a) => lookupName(lookups[RESOURCE_COLLECTION[a.resourceType]], a.resourceId);
+  // The API includes the resource name, so this works even for roles whose lookup lists are scoped.
+  const resourceLabel = (a) => a.resourceName || lookupName(lookups[RESOURCE_COLLECTION[a.resourceType]], a.resourceId);
 
   const columns = [
     { key: 'id', label: 'ID', render: (a) => <span className="fw-semibold">{a.id}</span> },
@@ -34,7 +35,7 @@ export default function AllocationsPage() {
       ),
       sortValue: resourceLabel,
     },
-    { key: 'incidentId', label: 'Incident', render: (a) => <span className="small">{lookupName(lookups.incidents, a.incidentId)}</span> },
+    { key: 'incidentId', label: 'Incident', render: (a) => <span className="small">{a.incidentTitle || lookupName(lookups.incidents, a.incidentId)}</span> },
     { key: 'requestId', label: 'Request', render: (a) => <span className="small">{a.requestId || '—'}</span> },
     { key: 'status', label: 'Status', render: (a) => <StatusBadge value={a.status} /> },
     {
@@ -52,14 +53,22 @@ export default function AllocationsPage() {
   const detailFields = [
     { label: 'Resource type', key: 'resourceType' },
     { label: 'Resource', render: resourceLabel },
-    { label: 'Quantity', render: (a) => (a.resourceType === 'Response Team' ? '1 team' : formatNumber(a.quantity)) },
+    {
+      label: 'Quantity',
+      render: (a) =>
+        a.resourceType === 'Response Team'
+          ? `1 team (${formatNumber(a.quantity)} responders)`
+          : `${formatNumber(a.quantity)} (${formatNumber(a.dispatchedQuantity)} dispatched, ${formatNumber(a.remainingQuantity)} remaining)`,
+    },
     { label: 'Status', render: (a) => <StatusBadge value={a.status} /> },
-    { label: 'Incident', render: (a) => lookupName(lookups.incidents, a.incidentId), full: true },
+    { label: 'Incident', render: (a) => a.incidentTitle || lookupName(lookups.incidents, a.incidentId), full: true },
     { label: 'Emergency request', render: (a) => (a.requestId ? `${a.requestId} · ${lookups.requests.find((r) => r.id === a.requestId)?.type || ''}` : '—') },
     { label: 'Allocated by', key: 'allocatedBy' },
     { label: 'Allocated at', render: (a) => formatDateTime(a.allocatedAt) },
+    { label: 'Approved', render: (a) => (a.approvedAt ? `${a.approvedBy || '—'} · ${formatDateTime(a.approvedAt)}` : '—') },
     { label: 'Last updated', render: (a) => formatDateTime(a.updatedAt) },
     { label: 'Notes', key: 'notes', full: true },
+    { label: 'Progress notes', render: (a) => a.progressNotes || '—', full: true },
   ];
 
   const isHistory = (a) => ['Completed', 'Cancelled'].includes(a.status);
@@ -87,7 +96,7 @@ export default function AllocationsPage() {
         { key: 'incidentId', label: 'incidents', options: lookups.incidents.map((i) => ({ value: i.id, label: `${i.id} · ${i.title}` })) },
       ]}
       formFields={FORM_FIELDS}
-      defaultValues={{ status: 'Allocated', quantity: 1 }}
+      defaultValues={{ quantity: 1 }}
       toFormValues={(a) => ({ ...a, requestId: a.requestId || '' })}
       toPayload={allocationPayload}
       validate={(v) => validateAllocation(v, lookups)}
@@ -102,7 +111,7 @@ export default function AllocationsPage() {
           icon: Truck,
           tone: 'success',
           onClick: () => navigate(`/dispatch?new=1&allocation=${row.id}`),
-          hidden: !can('dispatch', 'create') || !['Planned', 'Allocated'].includes(row.status),
+          hidden: !can('dispatch', 'create') || !DISPATCHABLE_ALLOCATION_STATUS.includes(row.status) || row.remainingQuantity <= 0,
         },
       ]}
     />

@@ -31,7 +31,7 @@ export default function AllocationFormModal({ open, title = 'Allocate resources'
       {open && (
         <EntityForm
           fields={fields}
-          initialValues={{ status: 'Allocated', quantity: 1, ...initialValues }}
+          initialValues={{ quantity: 1, ...initialValues }}
           lookups={lookups}
           validate={(v) => validateAllocation(v, lookups)}
           onSubmit={handleSubmit}

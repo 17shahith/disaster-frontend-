@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, LogIn, ShieldAlert } from 'lucide-react';
 import useAuth from '../../hooks/useAuth';
 import useToast from '../../hooks/useToast';
@@ -7,18 +7,10 @@ import Spinner from '../../components/common/Spinner';
 import { APP_FULL_NAME, ROLE_HOME, ROLE_LABELS } from '../../utils/constants';
 import { getErrorMessage } from '../../utils/formatters';
 import { validateFields } from '../../utils/validators';
-import { USE_MOCK_API } from '../../services/api';
 
 const FIELDS = [
   { name: 'email', label: 'Email', type: 'email', required: true },
   { name: 'password', label: 'Password', type: 'password', required: true, minLength: 6 },
-];
-
-const DEMO_ACCOUNTS = [
-  { role: 'ADMIN', email: 'admin@drrc.gov', password: 'admin123' },
-  { role: 'OPERATOR', email: 'operator@drrc.gov', password: 'operator123' },
-  { role: 'TEAM_LEAD', email: 'teamlead@drrc.gov', password: 'teamlead123' },
-  { role: 'RELIEF_COORDINATOR', email: 'relief@drrc.gov', password: 'relief123' },
 ];
 
 export default function LoginPage() {
@@ -129,28 +121,9 @@ export default function LoginPage() {
             {submitting ? <Spinner size="sm" /> : <LogIn size={18} />} Sign in
           </button>
 
-          {USE_MOCK_API && (
-            <div className="demo-accounts">
-              <span className="demo-accounts__title">Demo accounts (mock API)</span>
-              <div className="demo-accounts__grid">
-                {DEMO_ACCOUNTS.map((acc) => (
-                  <button
-                    key={acc.role}
-                    type="button"
-                    className="demo-account"
-                    onClick={() => {
-                      setValues({ email: acc.email, password: acc.password });
-                      setErrors({});
-                      setFormError('');
-                    }}
-                  >
-                    <strong>{ROLE_LABELS[acc.role]}</strong>
-                    <span>{acc.email}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
+          <p className="text-center small text-muted mt-3 mb-0">
+            New to the control room? <Link to="/register">Create an account</Link>
+          </p>
         </form>
       </section>
     </div>

@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:integration": "node --import ./scripts/integration/register.mjs scripts/integration/integration-check.mjs src"
   },
   "dependencies": {
     "axios": "^1.7.9",

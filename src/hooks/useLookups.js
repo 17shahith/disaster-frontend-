@@ -5,8 +5,10 @@ import teamService from '../services/teamService';
 import shelterService from '../services/shelterService';
 import supplyService from '../services/supplyService';
 import allocationService from '../services/allocationService';
+import userService from '../services/userService';
 
 const LOADERS = {
+  leads: userService.getTeamLeads, // administrator only
   incidents: incidentService.getAll,
   requests: requestService.getAll,
   teams: teamService.getAll,

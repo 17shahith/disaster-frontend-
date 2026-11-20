@@ -348,13 +348,6 @@ a { color: var(--info); }
 .login-form-wrap { display: flex; align-items: center; justify-content: center; padding: 32px 16px; background: var(--bg); }
 .login-card { width: 100%; max-width: 420px; background: var(--surface); padding: 32px; border-radius: 14px; border: 1px solid var(--border); box-shadow: var(--shadow-md); }
 .login-card h2 { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
-.demo-accounts { margin-top: 24px; padding-top: 18px; border-top: 1px dashed var(--border); }
-.demo-accounts__title { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); }
-.demo-accounts__grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 10px; }
-.demo-account { text-align: left; border: 1px solid var(--border); background: #f8fafc; border-radius: 8px; padding: 8px 10px; display: flex; flex-direction: column; min-width: 0; }
-.demo-account:hover { border-color: var(--info); background: var(--info-soft); }
-.demo-account strong { font-size: 12px; }
-.demo-account span { font-size: 11px; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 @media (max-width: 991.98px) {
   .login-page { grid-template-columns: 1fr; }
   .login-hero { padding: 28px 20px; }

@@ -5,6 +5,7 @@ import useAuth from '../hooks/useAuth';
 import { ROLE_HOME } from '../utils/constants';
 
 import LoginPage from '../pages/Login/LoginPage';
+import RegisterPage from '../pages/Register/RegisterPage';
 import DashboardPage from '../pages/Dashboard/DashboardPage';
 import IncidentsPage from '../pages/Incidents/IncidentsPage';
 import RequestsPage from '../pages/Requests/RequestsPage';
@@ -39,6 +40,7 @@ export default function AppRoutes() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/register" element={<RegisterPage />} />
       <Route element={<ProtectedRoute />}>
         <Route element={<AppLayout />}>
           <Route index element={<HomeRedirect />} />

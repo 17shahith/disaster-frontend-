@@ -10,20 +10,30 @@ import useToast from '../../hooks/useToast';
 import { SUPPLY_CATEGORIES, SUPPLY_UNITS } from '../../utils/constants';
 import { formatDateTime, formatNumber, getErrorMessage } from '../../utils/formatters';
 
-const stockLevel = (s) => (Number(s.quantity) <= 0 ? 'Out of Stock' : Number(s.quantity) <= Number(s.minThreshold) ? 'Low Stock' : 'In Stock');
+/** Based on available stock (physical stock minus quantities reserved by active allocations). */
+const stockLevel = (s) => (Number(s.available) <= 0 ? 'Out of Stock' : Number(s.available) <= Number(s.minThreshold) ? 'Low Stock' : 'In Stock');
 
 const FORM_FIELDS = [
   { name: 'name', label: 'Item name', required: true, minLength: 2, col: 8 },
   { name: 'category', label: 'Category', type: 'select', options: SUPPLY_CATEGORIES, required: true, col: 4 },
-  { name: 'quantity', label: 'Quantity in stock', type: 'number', min: 0, required: true, col: 4 },
-  { name: 'unit', label: 'Unit', type: 'select', options: SUPPLY_UNITS, required: true, col: 4 },
-  { name: 'minThreshold', label: 'Low-stock threshold', type: 'number', min: 0, required: true, col: 4, help: 'Alert when stock falls to this level' },
+  {
+    name: 'quantity',
+    label: 'Quantity in stock',
+    type: 'number',
+    min: 0,
+    required: true,
+    col: 4,
+    validate: (v, values) => (values.id && Number(v) < Number(values.reserved) ? `${values.reserved} are reserved by active allocations` : null),
+  },
+  // Keep a unit that is not in the preset list (e.g. created through the API) selectable.
+  { name: 'unit', label: 'Unit', type: 'select', options: (v) => (v.unit && !SUPPLY_UNITS.includes(v.unit) ? [v.unit, ...SUPPLY_UNITS] : SUPPLY_UNITS), required: true, col: 4 },
+  { name: 'minThreshold', label: 'Low-stock threshold', type: 'number', min: 0, required: true, col: 4, help: 'Alert when available stock falls to this level' },
   { name: 'warehouse', label: 'Warehouse / storage location', required: true, col: 12 },
 ];
 
+// Stock leaves the warehouse only through allocations and dispatch records, which keeps reservations consistent.
 const ADJUST_TYPES = [
   { value: 'RESTOCK', label: 'Restock (add to inventory)' },
-  { value: 'DISPATCH', label: 'Dispatch (remove from inventory)' },
   { value: 'CORRECTION', label: 'Stock count correction (set exact quantity)' },
 ];
 
@@ -38,17 +48,29 @@ const columns = [
       </>
     ),
   },
-  { key: 'quantity', label: 'Available', className: 'text-end fw-semibold', render: (s) => `${formatNumber(s.quantity)} ${s.unit}`, sortValue: (s) => Number(s.quantity) },
+  {
+    key: 'available',
+    label: 'Available',
+    className: 'text-end fw-semibold',
+    render: (s) => (
+      <>
+        {formatNumber(s.available)} {s.unit}
+        {s.reserved > 0 && <div className="small text-muted fw-normal">{formatNumber(s.quantity)} in stock · {formatNumber(s.reserved)} reserved</div>}
+      </>
+    ),
+    sortValue: (s) => Number(s.available),
+  },
   { key: 'minThreshold', label: 'Threshold', className: 'text-end', render: (s) => formatNumber(s.minThreshold), sortValue: (s) => Number(s.minThreshold) },
   { key: 'dispatched', label: 'Dispatched', className: 'text-end', render: (s) => formatNumber(s.dispatched), sortValue: (s) => Number(s.dispatched) },
-  { key: 'stock', label: 'Stock level', render: (s) => <StatusBadge value={stockLevel(s)} />, sortValue: (s) => Number(s.quantity) - Number(s.minThreshold) },
+  { key: 'stock', label: 'Stock level', render: (s) => <StatusBadge value={stockLevel(s)} />, sortValue: (s) => Number(s.available) - Number(s.minThreshold) },
   { key: 'warehouse', label: 'Warehouse' },
 ];
 
 const detailFields = [
   { label: 'Item', key: 'name' },
   { label: 'Category', key: 'category' },
-  { label: 'Available', render: (s) => `${formatNumber(s.quantity)} ${s.unit}` },
+  { label: 'Available', render: (s) => `${formatNumber(s.available)} ${s.unit}` },
+  { label: 'In stock / reserved', render: (s) => `${formatNumber(s.quantity)} in stock · ${formatNumber(s.reserved)} reserved for allocations` },
   { label: 'Stock level', render: (s) => <StatusBadge value={stockLevel(s)} /> },
   { label: 'Low-stock threshold', render: (s) => `${formatNumber(s.minThreshold)} ${s.unit}` },
   { label: 'Total dispatched', render: (s) => `${formatNumber(s.dispatched)} ${s.unit}` },
@@ -67,7 +89,7 @@ function LowStockAlerts({ items }) {
         <ul>
           {low.map((s) => (
             <li key={s.id}>
-              {s.name}: <strong>{formatNumber(s.quantity)}</strong> {s.unit} left (threshold {formatNumber(s.minThreshold)})
+              {s.name}: <strong>{formatNumber(s.available)}</strong> {s.unit} available (threshold {formatNumber(s.minThreshold)})
             </li>
           ))}
         </ul>
@@ -121,7 +143,13 @@ export default function SuppliesPage() {
         ]}
       />
 
-      <Modal open={Boolean(adjusting)} title="Update inventory" subtitle={adjusting && `${adjusting.name} · ${formatNumber(adjusting.quantity)} ${adjusting.unit} in stock`} onClose={() => setAdjusting(null)} size="sm">
+      <Modal
+        open={Boolean(adjusting)}
+        title="Update inventory"
+        subtitle={adjusting && `${adjusting.name} · ${formatNumber(adjusting.quantity)} ${adjusting.unit} in stock, ${formatNumber(adjusting.reserved)} reserved`}
+        onClose={() => setAdjusting(null)}
+        size="sm"
+      >
         {adjusting && (
           <EntityForm
             key={adjusting.id}
@@ -136,11 +164,13 @@ export default function SuppliesPage() {
                 col: 12,
                 validate: (v, values) => {
                   if (values.type !== 'CORRECTION' && Number(v) <= 0) return 'Quantity must be greater than zero';
-                  if (values.type === 'DISPATCH' && Number(v) > Number(adjusting.quantity)) return `Only ${adjusting.quantity} ${adjusting.unit} available`;
+                  if (values.type === 'CORRECTION' && Number(v) < Number(adjusting.reserved)) {
+                    return `Cannot go below the ${adjusting.reserved} ${adjusting.unit} reserved for active allocations`;
+                  }
                   return null;
                 },
               },
-              { name: 'note', label: 'Note', type: 'textarea', rows: 2, col: 12, placeholder: 'Reference, destination or reason' },
+              { name: 'note', label: 'Note', type: 'textarea', rows: 2, col: 12, maxLength: 255, placeholder: 'Delivery reference or reason for correction' },
             ]}
             initialValues={{ type: 'RESTOCK', quantity: '' }}
             onSubmit={adjustStock}

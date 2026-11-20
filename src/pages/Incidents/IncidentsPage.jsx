@@ -2,7 +2,7 @@ import { MapPin, Siren } from 'lucide-react';
 import CrudPage from '../../components/common/CrudPage';
 import StatusBadge from '../../components/common/StatusBadge';
 import incidentService from '../../services/incidentService';
-import { INCIDENT_STATUS, INCIDENT_TYPES, SEVERITY_LEVELS } from '../../utils/constants';
+import { INCIDENT_STATUS, INCIDENT_TYPES, OPEN_INCIDENT_STATUS, SEVERITY_LEVELS } from '../../utils/constants';
 import { formatDateTime, formatNumber, fromDateTimeInput, timeAgo, toDateTimeInput } from '../../utils/formatters';
 
 const SEVERITY_RANK = { Critical: 4, High: 3, Medium: 2, Low: 1 };
@@ -18,7 +18,8 @@ const FORM_FIELDS = [
   { name: 'title', label: 'Incident title', required: true, minLength: 5, maxLength: 120, col: 12, placeholder: 'e.g. Riverbank flooding in Ward 12' },
   { name: 'type', label: 'Incident type', type: 'select', options: INCIDENT_TYPES, required: true, col: 4 },
   { name: 'severity', label: 'Severity', type: 'select', options: SEVERITY_LEVELS, required: true, col: 4 },
-  { name: 'status', label: 'Status', type: 'select', options: INCIDENT_STATUS, required: true, col: 4 },
+  // A new incident cannot start as Completed/Closed; reopening is done by setting an open status.
+  { name: 'status', label: 'Status', type: 'select', options: (v) => (v.id ? INCIDENT_STATUS : OPEN_INCIDENT_STATUS), required: true, col: 4 },
   { name: 'location', label: 'Location / address', required: true, minLength: 3, col: 6, placeholder: 'Area, landmark, district' },
   { name: 'latitude', label: 'Latitude', ...coordinate('Latitude', -90, 90) },
   { name: 'longitude', label: 'Longitude', ...coordinate('Longitude', -180, 180) },
@@ -74,6 +75,7 @@ const detailFields = [
       ),
   },
   { label: 'Reported by', key: 'reportedBy' },
+  { label: 'Registered by', render: (i) => i.registeredBy || '—' },
   { label: 'Reported at', render: (i) => formatDateTime(i.reportedAt) },
   { label: 'Last updated', render: (i) => formatDateTime(i.updatedAt) },
   { label: 'Description', key: 'description', full: true },
