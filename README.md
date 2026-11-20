@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Disaster Response Resource Coordinator — Frontend
 
 A React + Vite web app for an emergency control room. It brings incidents, emergency requests, response teams, shelters, relief supplies, resource allocation and dispatch tracking together in one place, with navigation based on each user's role.
@@ -200,3 +201,6 @@ It also saves, lists, opens and deletes a situation-report snapshot in MongoDB. 
 Requirements:
 - The backend must be running at `http://127.0.0.1:5000` and seeded with `flask seed`.
 - The check creates records whose names start with `E2E`, so run it against a development or demo database, never production.
+=======
+# disaster-frontend-
+>>>>>>> 20638690bdda7d6ed85b37cb79c5c5c0855cc8e9
