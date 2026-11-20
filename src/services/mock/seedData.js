@@ -1,0 +1,92 @@
+/**
+ * TEMPORARY MOCK DATA — used only when VITE_USE_MOCK_API=true.
+ * Timestamps are relative to "now" so the demo always looks current.
+ */
+const hoursAgo = (h) => new Date(Date.now() - h * 3600 * 1000).toISOString();
+
+export const buildSeedData = () => ({
+  users: [
+    { id: 'USR-1001', name: 'Asha Menon', email: 'admin@drrc.gov', password: 'admin123', role: 'ADMIN', phone: '+91 98450 11001', status: 'Active', createdAt: hoursAgo(900) },
+    { id: 'USR-1002', name: 'Rahul Verma', email: 'operator@drrc.gov', password: 'operator123', role: 'OPERATOR', phone: '+91 98450 11002', status: 'Active', createdAt: hoursAgo(800) },
+    { id: 'USR-1003', name: 'Imran Shaikh', email: 'teamlead@drrc.gov', password: 'teamlead123', role: 'TEAM_LEAD', phone: '+91 98450 11003', status: 'Active', createdAt: hoursAgo(700) },
+    { id: 'USR-1004', name: 'Priya Nair', email: 'relief@drrc.gov', password: 'relief123', role: 'RELIEF_COORDINATOR', phone: '+91 98450 11004', status: 'Active', createdAt: hoursAgo(600) },
+    { id: 'USR-1005', name: 'Daniel Joseph', email: 'd.joseph@drrc.gov', password: 'password123', role: 'OPERATOR', phone: '+91 98450 11005', status: 'Inactive', createdAt: hoursAgo(500) },
+  ],
+  incidents: [
+    { id: 'INC-1001', title: 'Riverbank flooding in low-lying wards', type: 'Flood', severity: 'Critical', status: 'Active', location: 'Ward 12, Riverside District', latitude: 12.9716, longitude: 77.5946, affectedPeople: 1200, reportedBy: 'District Collector Office', description: 'River overflowed after 36 hours of continuous rain. Multiple houses submerged.', reportedAt: hoursAgo(30), updatedAt: hoursAgo(2) },
+    { id: 'INC-1002', title: 'Warehouse fire at industrial estate', type: 'Fire', severity: 'High', status: 'Contained', location: 'Plot 44, Peenya Industrial Area', latitude: 13.0285, longitude: 77.5197, affectedPeople: 35, reportedBy: 'Fire Control Room', description: 'Chemical storage warehouse fire, risk of toxic smoke.', reportedAt: hoursAgo(20), updatedAt: hoursAgo(4) },
+    { id: 'INC-1003', title: 'Landslide blocking highway NH-75', type: 'Landslide', severity: 'High', status: 'Active', location: 'NH-75, Km 212, Shiradi Ghat', latitude: 12.83, longitude: 75.62, affectedPeople: 80, reportedBy: 'Highway Patrol', description: 'Debris covering both lanes, vehicles stranded.', reportedAt: hoursAgo(14), updatedAt: hoursAgo(1) },
+    { id: 'INC-1004', title: 'Partial building collapse', type: 'Building Collapse', severity: 'Critical', status: 'Active', location: '3rd Cross, Shivajinagar', latitude: 12.985, longitude: 77.605, affectedPeople: 24, reportedBy: 'Police Control Room', description: 'Three-storey residential building partially collapsed. People feared trapped.', reportedAt: hoursAgo(6), updatedAt: hoursAgo(0.5) },
+    { id: 'INC-1005', title: 'Cyclone warning – coastal evacuation', type: 'Cyclone', severity: 'High', status: 'Reported', location: 'Coastal Taluks, Udupi', latitude: 13.34, longitude: 74.74, affectedPeople: 5000, reportedBy: 'IMD Regional Centre', description: 'Pre-emptive evacuation of fishing villages ahead of landfall.', reportedAt: hoursAgo(4), updatedAt: hoursAgo(4) },
+    { id: 'INC-1006', title: 'Ammonia leak at cold storage', type: 'Chemical Spill', severity: 'Medium', status: 'Resolved', location: 'APMC Yard, Yeshwanthpur', latitude: 13.02, longitude: 77.55, affectedPeople: 12, reportedBy: 'Factory Inspector', description: 'Valve failure; leak sealed by hazmat team.', reportedAt: hoursAgo(72), updatedAt: hoursAgo(50) },
+    { id: 'INC-1007', title: 'Waterlogging in underpass', type: 'Flood', severity: 'Low', status: 'Closed', location: 'Okalipuram Underpass', latitude: 12.98, longitude: 77.56, affectedPeople: 0, reportedBy: 'Traffic Police', description: 'Pumps deployed, traffic restored.', reportedAt: hoursAgo(96), updatedAt: hoursAgo(90) },
+    { id: 'INC-1008', title: 'Mild earthquake tremors reported', type: 'Earthquake', severity: 'Medium', status: 'Contained', location: 'Hassan District', latitude: 13.0, longitude: 76.1, affectedPeople: 150, reportedBy: 'Seismology Unit', description: 'Magnitude 3.9 tremor. Minor cracks in old structures.', reportedAt: hoursAgo(40), updatedAt: hoursAgo(10) },
+    { id: 'INC-1009', title: 'Mass casualty bus accident', type: 'Medical Emergency', severity: 'High', status: 'Resolved', location: 'Tumkur Road, Nelamangala', latitude: 13.1, longitude: 77.39, affectedPeople: 42, reportedBy: '108 Ambulance Control', description: 'Bus overturned; injured shifted to nearby hospitals.', reportedAt: hoursAgo(55), updatedAt: hoursAgo(45) },
+  ],
+  requests: [
+    { id: 'REQ-2001', incidentId: 'INC-1001', requesterName: 'Ward Officer – Ward 12', contact: '+91 90000 22001', type: 'Rescue', priority: 'Critical', status: 'In Progress', location: 'Ward 12, Lane 4', peopleAffected: 60, description: 'Families stranded on rooftops, boats required.', createdAt: hoursAgo(28), updatedAt: hoursAgo(3) },
+    { id: 'REQ-2002', incidentId: 'INC-1001', requesterName: 'Relief Camp Volunteer', contact: '+91 90000 22002', type: 'Food & Water', priority: 'High', status: 'Approved', location: 'Govt School, Ward 12', peopleAffected: 400, description: 'Drinking water and cooked meals for 400 people.', createdAt: hoursAgo(24), updatedAt: hoursAgo(6) },
+    { id: 'REQ-2003', incidentId: 'INC-1004', requesterName: 'Inspector K. Rao', contact: '+91 90000 22003', type: 'Rescue', priority: 'Critical', status: 'Pending', location: '3rd Cross, Shivajinagar', peopleAffected: 8, description: 'Heavy rescue equipment and sniffer dogs needed.', createdAt: hoursAgo(5), updatedAt: hoursAgo(5) },
+    { id: 'REQ-2004', incidentId: 'INC-1005', requesterName: 'Tahsildar, Udupi', contact: '+91 90000 22004', type: 'Evacuation', priority: 'High', status: 'Pending', location: 'Malpe Fishing Village', peopleAffected: 1500, description: 'Buses for evacuation and shelter allocation.', createdAt: hoursAgo(3), updatedAt: hoursAgo(3) },
+    { id: 'REQ-2005', incidentId: 'INC-1003', requesterName: 'Highway Patrol Unit 7', contact: '+91 90000 22005', type: 'Medical', priority: 'Medium', status: 'Approved', location: 'NH-75, Km 210', peopleAffected: 15, description: 'First aid for stranded passengers.', createdAt: hoursAgo(12), updatedAt: hoursAgo(8) },
+    { id: 'REQ-2006', incidentId: 'INC-1002', requesterName: 'Fire Officer S. Das', contact: '+91 90000 22006', type: 'Medical', priority: 'High', status: 'Fulfilled', location: 'Peenya Industrial Area', peopleAffected: 10, description: 'Oxygen cylinders for smoke inhalation cases.', createdAt: hoursAgo(19), updatedAt: hoursAgo(9) },
+    { id: 'REQ-2007', incidentId: 'INC-1008', requesterName: 'Gram Panchayat, Arkalgud', contact: '+91 90000 22007', type: 'Shelter', priority: 'Medium', status: 'Pending', location: 'Arkalgud', peopleAffected: 60, description: 'Temporary shelter for families with damaged homes.', createdAt: hoursAgo(9), updatedAt: hoursAgo(9) },
+    { id: 'REQ-2008', incidentId: 'INC-1001', requesterName: 'PHC Doctor', contact: '+91 90000 22008', type: 'Relief Supplies', priority: 'Low', status: 'Pending', location: 'PHC Riverside', peopleAffected: 200, description: 'Hygiene kits and blankets.', createdAt: hoursAgo(2), updatedAt: hoursAgo(2) },
+  ],
+  teams: [
+    { id: 'TEAM-301', name: 'NDRF Battalion 10 – Alpha', type: 'Search & Rescue', leader: 'Insp. Vikram Singh', contact: '+91 91000 30101', members: 24, baseLocation: 'Yelahanka Base', status: 'Deployed', currentIncidentId: 'INC-1001', updatedAt: hoursAgo(3) },
+    { id: 'TEAM-302', name: 'SDRF Rapid Rescue Unit', type: 'Search & Rescue', leader: 'Sub-Insp. Meera Rao', contact: '+91 91000 30102', members: 18, baseLocation: 'Hebbal Station', status: 'Deployed', currentIncidentId: 'INC-1004', updatedAt: hoursAgo(1) },
+    { id: 'TEAM-303', name: 'City Medical Response Team', type: 'Medical', leader: 'Dr. Anil Kumar', contact: '+91 91000 30103', members: 12, baseLocation: 'Victoria Hospital', status: 'Available', currentIncidentId: null, updatedAt: hoursAgo(8) },
+    { id: 'TEAM-304', name: 'Fire & Emergency Station 6', type: 'Firefighting', leader: 'SFO Ramesh Gowda', contact: '+91 91000 30104', members: 16, baseLocation: 'Peenya Fire Station', status: 'On Standby', currentIncidentId: null, updatedAt: hoursAgo(4) },
+    { id: 'TEAM-305', name: 'Coastal Evacuation Squad', type: 'Evacuation', leader: 'Cdr. Joseph Pinto', contact: '+91 91000 30105', members: 30, baseLocation: 'Udupi Port', status: 'Available', currentIncidentId: null, updatedAt: hoursAgo(5) },
+    { id: 'TEAM-306', name: 'Hazmat Response Cell', type: 'Hazmat', leader: 'Eng. Farah Khan', contact: '+91 91000 30106', members: 8, baseLocation: 'KSPCB HQ', status: 'Available', currentIncidentId: null, updatedAt: hoursAgo(50) },
+    { id: 'TEAM-307', name: 'Logistics Convoy Team B', type: 'Logistics', leader: 'Mr. Suresh Babu', contact: '+91 91000 30107', members: 14, baseLocation: 'Central Warehouse', status: 'Deployed', currentIncidentId: 'INC-1003', updatedAt: hoursAgo(6) },
+    { id: 'TEAM-308', name: 'Mobile Medical Unit 2', type: 'Medical', leader: 'Dr. Kavya Shetty', contact: '+91 91000 30108', members: 10, baseLocation: 'Bowring Hospital', status: 'Off Duty', currentIncidentId: null, updatedAt: hoursAgo(20) },
+  ],
+  shelters: [
+    { id: 'SHL-401', name: 'Govt Higher Primary School', location: 'Ward 12, Riverside District', capacity: 400, occupancy: 362, managerName: 'Mrs. Lakshmi Devi', contact: '+91 92000 40101', facilities: 'Kitchen, toilets, medical desk', status: 'Open', updatedAt: hoursAgo(2) },
+    { id: 'SHL-402', name: 'Community Hall – Malleshwaram', location: '8th Cross, Malleshwaram', capacity: 250, occupancy: 250, managerName: 'Mr. Prakash Hegde', contact: '+91 92000 40102', facilities: 'Toilets, generator', status: 'Full', updatedAt: hoursAgo(3) },
+    { id: 'SHL-403', name: 'Indoor Stadium Shelter', location: 'Kanteerava Stadium', capacity: 1200, occupancy: 430, managerName: 'Mr. Arjun Reddy', contact: '+91 92000 40103', facilities: 'Kitchen, showers, medical bay, child area', status: 'Open', updatedAt: hoursAgo(1) },
+    { id: 'SHL-404', name: 'Coastal Cyclone Shelter #3', location: 'Malpe, Udupi', capacity: 800, occupancy: 120, managerName: 'Mrs. Shobha Kamath', contact: '+91 92000 40104', facilities: 'Elevated structure, generator, water tank', status: 'Open', updatedAt: hoursAgo(3) },
+    { id: 'SHL-405', name: 'Temple Kalyana Mantapa', location: 'Arkalgud, Hassan', capacity: 150, occupancy: 0, managerName: 'Mr. Nagaraj', contact: '+91 92000 40105', facilities: 'Kitchen, toilets', status: 'Closed', updatedAt: hoursAgo(30) },
+  ],
+  supplies: [
+    { id: 'SUP-501', name: 'Packaged Drinking Water (1L)', category: 'Water', unit: 'Bottles', quantity: 4200, minThreshold: 2000, dispatched: 5800, warehouse: 'Central Warehouse', updatedAt: hoursAgo(2) },
+    { id: 'SUP-502', name: 'Ready-to-eat Meal Packs', category: 'Food', unit: 'Packets', quantity: 900, minThreshold: 1500, dispatched: 3100, warehouse: 'Central Warehouse', updatedAt: hoursAgo(3) },
+    { id: 'SUP-503', name: 'First Aid Kits', category: 'Medical', unit: 'Kits', quantity: 180, minThreshold: 100, dispatched: 220, warehouse: 'Medical Store, Victoria', updatedAt: hoursAgo(5) },
+    { id: 'SUP-504', name: 'Blankets', category: 'Shelter', unit: 'Pieces', quantity: 650, minThreshold: 500, dispatched: 1350, warehouse: 'Central Warehouse', updatedAt: hoursAgo(6) },
+    { id: 'SUP-505', name: 'Tarpaulin Sheets', category: 'Shelter', unit: 'Pieces', quantity: 120, minThreshold: 300, dispatched: 480, warehouse: 'Hebbal Depot', updatedAt: hoursAgo(9) },
+    { id: 'SUP-506', name: 'Hygiene Kits', category: 'Hygiene', unit: 'Kits', quantity: 0, minThreshold: 200, dispatched: 600, warehouse: 'Hebbal Depot', updatedAt: hoursAgo(12) },
+    { id: 'SUP-507', name: 'Oxygen Cylinders', category: 'Medical', unit: 'Units', quantity: 46, minThreshold: 30, dispatched: 24, warehouse: 'Medical Store, Victoria', updatedAt: hoursAgo(9) },
+    { id: 'SUP-508', name: 'Inflatable Rescue Boats', category: 'Equipment', unit: 'Units', quantity: 6, minThreshold: 4, dispatched: 8, warehouse: 'NDRF Store, Yelahanka', updatedAt: hoursAgo(28) },
+    { id: 'SUP-509', name: 'Children Clothing Sets', category: 'Clothing', unit: 'Boxes', quantity: 75, minThreshold: 50, dispatched: 40, warehouse: 'Central Warehouse', updatedAt: hoursAgo(40) },
+  ],
+  allocations: [
+    { id: 'ALC-601', incidentId: 'INC-1001', requestId: 'REQ-2001', resourceType: 'Response Team', resourceId: 'TEAM-301', quantity: 1, status: 'Dispatched', notes: 'Boat rescue operations in Ward 12', allocatedBy: 'Rahul Verma', allocatedAt: hoursAgo(27), updatedAt: hoursAgo(26) },
+    { id: 'ALC-602', incidentId: 'INC-1001', requestId: 'REQ-2002', resourceType: 'Relief Supply', resourceId: 'SUP-501', quantity: 2000, status: 'Completed', notes: 'Drinking water for relief camp', allocatedBy: 'Priya Nair', allocatedAt: hoursAgo(23), updatedAt: hoursAgo(10) },
+    { id: 'ALC-603', incidentId: 'INC-1001', requestId: 'REQ-2002', resourceType: 'Shelter', resourceId: 'SHL-401', quantity: 350, status: 'Allocated', notes: 'Displaced families from Ward 12', allocatedBy: 'Priya Nair', allocatedAt: hoursAgo(22), updatedAt: hoursAgo(22) },
+    { id: 'ALC-604', incidentId: 'INC-1004', requestId: 'REQ-2003', resourceType: 'Response Team', resourceId: 'TEAM-302', quantity: 1, status: 'Dispatched', notes: 'Collapsed structure search', allocatedBy: 'Rahul Verma', allocatedAt: hoursAgo(5), updatedAt: hoursAgo(4.5) },
+    { id: 'ALC-605', incidentId: 'INC-1002', requestId: 'REQ-2006', resourceType: 'Relief Supply', resourceId: 'SUP-507', quantity: 12, status: 'Completed', notes: 'Oxygen for smoke inhalation', allocatedBy: 'Priya Nair', allocatedAt: hoursAgo(18), updatedAt: hoursAgo(9) },
+    { id: 'ALC-606', incidentId: 'INC-1003', requestId: null, resourceType: 'Response Team', resourceId: 'TEAM-307', quantity: 1, status: 'Dispatched', notes: 'Debris clearance logistics', allocatedBy: 'Rahul Verma', allocatedAt: hoursAgo(12), updatedAt: hoursAgo(11) },
+    { id: 'ALC-607', incidentId: 'INC-1005', requestId: 'REQ-2004', resourceType: 'Shelter', resourceId: 'SHL-404', quantity: 600, status: 'Planned', notes: 'Pre-cyclone evacuation', allocatedBy: 'Priya Nair', allocatedAt: hoursAgo(2), updatedAt: hoursAgo(2) },
+    { id: 'ALC-608', incidentId: 'INC-1003', requestId: 'REQ-2005', resourceType: 'Relief Supply', resourceId: 'SUP-503', quantity: 20, status: 'Allocated', notes: 'First aid for stranded passengers', allocatedBy: 'Rahul Verma', allocatedAt: hoursAgo(7), updatedAt: hoursAgo(7) },
+  ],
+  dispatches: [
+    { id: 'DSP-701', allocationId: 'ALC-601', incidentId: 'INC-1001', resourceSummary: 'NDRF Alpha with 4 rescue boats', origin: 'Yelahanka Base', destination: 'Ward 12, Riverside District', vehicle: 'KA-01-G-4521', driver: 'Manjunath', status: 'Delivered', dispatchTime: hoursAgo(26), deliveredAt: hoursAgo(25), completedAt: null, notes: '' },
+    { id: 'DSP-702', allocationId: 'ALC-602', incidentId: 'INC-1001', resourceSummary: '2000 bottles drinking water', origin: 'Central Warehouse', destination: 'Govt School, Ward 12', vehicle: 'KA-05-AB-9087', driver: 'Ravi', status: 'Completed', dispatchTime: hoursAgo(20), deliveredAt: hoursAgo(18), completedAt: hoursAgo(10), notes: 'Received by camp in-charge' },
+    { id: 'DSP-703', allocationId: 'ALC-604', incidentId: 'INC-1004', resourceSummary: 'SDRF Rapid Rescue Unit + cutting equipment', origin: 'Hebbal Station', destination: '3rd Cross, Shivajinagar', vehicle: 'KA-04-SD-1102', driver: 'Gopal', status: 'In Transit', dispatchTime: hoursAgo(4.5), deliveredAt: null, completedAt: null, notes: '' },
+    { id: 'DSP-704', allocationId: 'ALC-605', incidentId: 'INC-1002', resourceSummary: '12 oxygen cylinders', origin: 'Medical Store, Victoria', destination: 'Peenya Industrial Area', vehicle: 'KA-02-MD-3321', driver: 'Salim', status: 'Completed', dispatchTime: hoursAgo(17), deliveredAt: hoursAgo(16), completedAt: hoursAgo(9), notes: '' },
+    { id: 'DSP-705', allocationId: 'ALC-606', incidentId: 'INC-1003', resourceSummary: 'Logistics Convoy B – 2 excavators', origin: 'Central Warehouse', destination: 'NH-75, Km 212', vehicle: 'KA-19-HV-7788', driver: 'Prakash', status: 'Delivered', dispatchTime: hoursAgo(11), deliveredAt: hoursAgo(8), completedAt: null, notes: '' },
+    { id: 'DSP-706', allocationId: 'ALC-608', incidentId: 'INC-1003', resourceSummary: '20 first aid kits', origin: 'Medical Store, Victoria', destination: 'NH-75, Km 210', vehicle: 'KA-02-MD-4410', driver: 'Harish', status: 'Pending', dispatchTime: null, deliveredAt: null, completedAt: null, notes: 'Awaiting road clearance' },
+  ],
+  activities: [
+    { id: 'ACT-9008', message: 'Dispatch DSP-703 marked In Transit to Shivajinagar', module: 'Dispatch', user: 'Rahul Verma', timestamp: hoursAgo(4.5) },
+    { id: 'ACT-9007', message: 'SDRF Rapid Rescue Unit assigned to INC-1004', module: 'Allocation', user: 'Rahul Verma', timestamp: hoursAgo(5) },
+    { id: 'ACT-9006', message: 'New incident registered: Partial building collapse', module: 'Incidents', user: 'Rahul Verma', timestamp: hoursAgo(6) },
+    { id: 'ACT-9005', message: 'Coastal Cyclone Shelter #3 planned for 600 evacuees', module: 'Allocation', user: 'Priya Nair', timestamp: hoursAgo(2) },
+    { id: 'ACT-9004', message: 'Hygiene Kits stock depleted (0 kits remaining)', module: 'Supplies', user: 'Priya Nair', timestamp: hoursAgo(12) },
+    { id: 'ACT-9003', message: 'Dispatch DSP-702 completed – 2000 water bottles delivered', module: 'Dispatch', user: 'Priya Nair', timestamp: hoursAgo(10) },
+    { id: 'ACT-9002', message: 'Warehouse fire INC-1002 status changed to Contained', module: 'Incidents', user: 'Imran Shaikh', timestamp: hoursAgo(4) },
+    { id: 'ACT-9001', message: 'Evacuation request REQ-2004 created for Malpe village', module: 'Requests', user: 'Rahul Verma', timestamp: hoursAgo(3) },
+  ],
+});
