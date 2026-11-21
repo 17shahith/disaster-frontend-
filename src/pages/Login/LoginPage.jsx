@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
-import { Eye, EyeOff, LogIn, ShieldAlert } from 'lucide-react';
+import { Eye, EyeOff, ShieldAlert, Siren, Truck, Users } from 'lucide-react';
 import useAuth from '../../hooks/useAuth';
 import useToast from '../../hooks/useToast';
 import Spinner from '../../components/common/Spinner';
@@ -11,6 +11,21 @@ import { validateFields } from '../../utils/validators';
 const FIELDS = [
   { name: 'email', label: 'Email', type: 'email', required: true },
   { name: 'password', label: 'Password', type: 'password', required: true, minLength: 6 },
+];
+
+// One-click fill for the seeded demo accounts. Shown only in development builds.
+const DEMO_PASSWORD = 'Password@123';
+const DEMO_ACCOUNTS = [
+  { label: 'Administrator', email: 'admin@drrc.local' },
+  { label: 'Operator', email: 'operator@drrc.local' },
+  { label: 'Team Lead', email: 'teamlead@drrc.local' },
+  { label: 'Relief Coordinator', email: 'coordinator@drrc.local' },
+];
+
+const FEATURES = [
+  { icon: Siren, text: 'Live incident tracking by severity and status' },
+  { icon: Users, text: 'Assign teams, shelters and supplies to requests' },
+  { icon: Truck, text: 'Dispatch tracking from departure to completion' },
 ];
 
 export default function LoginPage() {
@@ -54,30 +69,34 @@ export default function LoginPage() {
     <div className="login-page">
       <section className="login-hero">
         <div className="login-hero__brand">
-          <span className="sidebar__logo">
-            <ShieldAlert size={26} />
+          <span className="login-hero__logo">
+            <ShieldAlert size={24} />
           </span>
           <strong>DRRC</strong>
         </div>
+
         <div>
-          <h1>{APP_FULL_NAME}</h1>
-          <p>
-            One control room for incidents, emergency requests, response teams, shelters, relief supplies and dispatch — coordinated in real
-            time.
-          </p>
+          <h1>Coordinate every emergency response.</h1>
+          <p className="login-hero__lead">Track incidents, requests, teams, shelters and relief supplies in one calm, organised control room.</p>
           <ul className="login-hero__points">
-            <li><span className="dot dot--danger" /> Track active emergencies by severity</li>
-            <li><span className="dot dot--warning" /> Prioritise and assign emergency requests</li>
-            <li><span className="dot dot--success" /> Allocate and dispatch resources to completion</li>
+            {FEATURES.map(({ icon: Icon, text }) => (
+              <li key={text}>
+                <span className="login-hero__tile">
+                  <Icon size={18} />
+                </span>
+                {text}
+              </li>
+            ))}
           </ul>
         </div>
-        <small>Authorised emergency personnel only. All actions are logged.</small>
+
+        <span className="login-hero__foot">{APP_FULL_NAME}</span>
       </section>
 
       <section className="login-form-wrap">
         <form className="login-card" onSubmit={handleSubmit} noValidate>
           <h2>Sign in</h2>
-          <p className="text-muted">Use your control room credentials.</p>
+          <p className="login-card__sub">Welcome back. Enter your account details.</p>
 
           {formError && (
             <div className="alert alert-danger py-2" role="alert">
@@ -86,7 +105,7 @@ export default function LoginPage() {
           )}
 
           <div className="mb-3">
-            <label htmlFor="email" className="form-label">Email</label>
+            <label htmlFor="email" className="form-label">Email address</label>
             <input
               id="email"
               type="email"
@@ -101,7 +120,7 @@ export default function LoginPage() {
 
           <div className="mb-4">
             <label htmlFor="password" className="form-label">Password</label>
-            <div className="input-group has-validation">
+            <div className="password-wrap">
               <input
                 id="password"
                 type={showPassword ? 'text' : 'password'}
@@ -110,18 +129,43 @@ export default function LoginPage() {
                 onChange={(e) => update('password', e.target.value)}
                 autoComplete="current-password"
               />
-              <button type="button" className="btn btn-outline-secondary" onClick={() => setShowPassword((s) => !s)} aria-label={showPassword ? 'Hide password' : 'Show password'}>
+              <button type="button" className="password-toggle" onClick={() => setShowPassword((s) => !s)} aria-label={showPassword ? 'Hide password' : 'Show password'}>
                 {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
-              {errors.password && <div className="invalid-feedback">{errors.password}</div>}
             </div>
+            {errors.password && <div className="invalid-feedback d-block">{errors.password}</div>}
           </div>
 
-          <button type="submit" className="btn btn-primary w-100 btn-lg" disabled={submitting}>
-            {submitting ? <Spinner size="sm" /> : <LogIn size={18} />} Sign in
+          <button type="submit" className="btn btn-submit" disabled={submitting}>
+            {submitting && <Spinner size="sm" />} Sign in
           </button>
 
-          <p className="text-center small text-muted mt-3 mb-0">
+          {import.meta.env.DEV && (
+            <>
+              <hr className="login-divider" />
+              <div className="demo-accounts">
+                <span className="demo-accounts__title">Demo accounts — click to fill</span>
+                <div className="demo-accounts__chips">
+                  {DEMO_ACCOUNTS.map((acc) => (
+                    <button
+                      key={acc.email}
+                      type="button"
+                      className="demo-chip"
+                      onClick={() => {
+                        setValues({ email: acc.email, password: DEMO_PASSWORD });
+                        setErrors({});
+                        setFormError('');
+                      }}
+                    >
+                      {acc.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
+
+          <p className="login-card__alt">
             New to the control room? <Link to="/register">Create an account</Link>
           </p>
         </form>
